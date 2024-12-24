@@ -1,0 +1,403 @@
+openapi: 3.0.3
+info:
+  title: Siddhi Backend
+  version: 1.0.0
+  description: API documentation for different endpoints in this backend
+
+servers:
+  - url: /api/v1
+
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      description: Authenticates a user with email and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: User logged in successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing or invalid fields.
+        '401':
+          description: Invalid credentials.
+        '404':
+          description: User not found.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account using an OTP verification mechanism.
+        The user must have requested an OTP beforehand via `/auth/verify-account`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing or invalid fields, or invalid/expired OTP.
+        '409':
+          description: Email or username already taken.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/verify-account:
+    post:
+      summary: Request OTP for account verification
+      description: Generates and sends an OTP to the provided email for verification before registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyAccountRequest'
+      responses:
+        '200':
+          description: Verification OTP sent successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing or invalid fields.
+        '409':
+          description: Email or username already taken.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/refresh-token:
+    post:
+      summary: Refresh access token
+      description: Refreshes the access token using the refresh token.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Access token refreshed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Missing or invalid refresh token.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Logs out the user by invalidating the refresh token and clearing cookies.
+      responses:
+        '200':
+          description: User logged out successfully.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/forgot-password:
+    post:
+      summary: Forgot password
+      description: Initiates password reset by sending a reset link to the user's email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: If the email is registered, a reset link is sent.
+        '400':
+          description: Email is required.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/verify-reset-token:
+    post:
+      summary: Verify reset token
+      description: Verifies if a given reset token is valid and not expired.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyTokenRequest'
+      responses:
+        '200':
+          description: Token is valid.
+        '400':
+          description: Invalid or expired token.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      description: Resets the user's password using a valid reset token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password updated successfully.
+        '400':
+          description: Missing token or newPassword, or token invalid/expired.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+  /college/preferences:
+    post:
+      summary: Get eligible colleges
+      description: Returns a paginated list of colleges that match user preferences.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollegePreferencesRequest'
+      responses:
+        '200':
+          description: Colleges fetched successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollegePreferencesResponse'
+        '400':
+          description: Invalid or missing fields.
+        '429':
+          description: Too many requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+        message:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, username, password, otp]
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+        otp:
+          type: string
+
+    VerifyAccountRequest:
+      type: object
+      required: [email, username]
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+          description: Can be empty object for success responses without additional data.
+        message:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+        message:
+          type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    VerifyTokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+
+    CollegePreferencesRequest:
+      type: object
+      required: [gender, seatType, rank]
+      properties:
+        gender:
+          type: string
+          enum: [Male, Female, Gender-Neutral]
+        seatType:
+          type: string
+        rank:
+          type: integer
+        page:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 10
+
+    CollegePreferencesResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+          properties:
+            colleges:
+              type: array
+              items:
+                $ref: '#/components/schemas/College'
+            currentPage:
+              type: integer
+            noOfPages:
+              type: integer
+            totalDocuments:
+              type: integer
+        message:
+          type: string
+
+    College:
+      type: object
+      properties:
+        collegeName:
+          type: string
+        programName:
+          type: string
+
+    RateLimitError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: 'Too many requests, please try again later'
