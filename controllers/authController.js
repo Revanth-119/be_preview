@@ -52,7 +52,8 @@ const handleLogin = asyncHandler(async (req, res) => {
   const loggedInUser = await User.findById(user._id).select('-password -refreshToken -_id');
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   };
   return res
     .status(200)
@@ -132,7 +133,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   };
   return res
     .status(200)
@@ -157,7 +159,8 @@ const handleLogout = asyncHandler(async (req, res) => {
   );
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   };
   return res
     .status(200)
