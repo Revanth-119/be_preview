@@ -25,6 +25,8 @@ const DB_URI = process.env.DB_URI ?? `mongodb://127.0.0.1:27017/${DB_NAME}`;
 
 if (process.env.NODE_ENV === 'production') {
   //start the cluster in production phase
+  await connectToDb(DB_URI);
+  startServer();
 } else {
   await connectToDb(DB_URI);
   startServer();
